@@ -5,17 +5,20 @@ import com.prithak.taskorganizer.entity.Task;
 import com.prithak.taskorganizer.entity.User;
 import com.prithak.taskorganizer.repository.TaskRepository;
 import com.prithak.taskorganizer.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 public class TaskService {
 
-    @Autowired
-    private TaskRepository taskRepository;
+    private final TaskRepository taskRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+
+    public TaskService(TaskRepository taskRepository, UserRepository userRepository) {
+        this.taskRepository = taskRepository;
+        this.userRepository = userRepository;
+    }
+
 
     public TaskDTO createTask(TaskDTO taskDTO) {
         User assignee = userRepository.findByEmail(taskDTO.getAssigneeEmail()).orElseThrow(() -> new RuntimeException("User not found"));

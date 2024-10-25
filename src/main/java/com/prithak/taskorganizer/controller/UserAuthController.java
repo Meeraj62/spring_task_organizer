@@ -44,9 +44,11 @@ public class UserAuthController {
                     new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
             );
 
+            System.out.println("Login Successful for user: " + authRequest.getUsername());
+
             // If authentication is successful, generate the JWT token
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String jwtToken = jwtUtil.generateToken((User) userDetails);
+            String jwtToken = jwtUtil.generateToken(userDetails);
 
             return ResponseEntity.ok(jwtToken);
         } catch (BadCredentialsException ex) {

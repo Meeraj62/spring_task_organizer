@@ -29,6 +29,11 @@ public class UserInfoService implements UserDetailsService {
     }
 
     public String addUser(User userInfo) {
+
+        if(userRepository.findByEmail(userInfo.getEmail()).isPresent()) {
+            return "User with email " + userInfo.getEmail() + " already exists";
+        }
+
         userInfo.setPassword(passwordEncoder.encode(userInfo.getPassword()));
         userRepository.save(userInfo);
         return "User Registered Successfully";
