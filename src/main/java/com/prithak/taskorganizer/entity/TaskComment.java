@@ -6,14 +6,13 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Data
 @Entity
-@Table(name = "task_attachments")
+@Table(name = "task_comments")
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TaskAttachment extends BaseEntity{
-
+public class TaskComment extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -22,12 +21,6 @@ public class TaskAttachment extends BaseEntity{
     @JoinColumn(name = "task_id", nullable = false)
     private Task task;
 
-    @Column(nullable = false)
-    private String fileName;
-
-    @Column(nullable = false)
-    private String fileType;
-
-    @Column(nullable = false)
-    private String filePath;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String content;
 }
