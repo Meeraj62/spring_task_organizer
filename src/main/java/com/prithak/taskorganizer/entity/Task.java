@@ -27,20 +27,24 @@ public class Task {
 
     private String description;
 
-    private String dueDate;
+    private LocalDateTime dueDate;
+
+    private String status = "OPEN";
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
     private List<TaskAttachment> attachments = new ArrayList<>();
 
     @CreatedDate
-    private LocalDateTime created_at;
+    private LocalDateTime createdAt;
 
     @LastModifiedDate
-    private LocalDateTime updated_at;
+    private LocalDateTime updatedAt;
 
     @CreatedBy
-    private String created_by;
+    @ManyToOne
+    private User createdBy;
 
     @LastModifiedBy
-    private String updated_by;
+    @ManyToOne
+    private User updatedBy;
 }
