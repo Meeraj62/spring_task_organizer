@@ -1,6 +1,6 @@
 package com.prithak.taskorganizer.security;
 
-import com.prithak.taskorganizer.service.UserInfoService;
+import com.prithak.taskorganizer.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,11 +18,11 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
-    private final UserInfoService userInfoService;
+    private final UserService userService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserInfoService userDetailsService) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserService userService) {
         this.jwtUtil = jwtUtil;
-        this.userInfoService = userDetailsService;
+        this.userService = userService;
     }
 
     @Override
@@ -38,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userInfoService.loadUserByUsername(username);
+            UserDetails userDetails = this.userService.loadUserByUsername(username);
             if (jwtUtil.validateToken(token, userDetails)) {
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());

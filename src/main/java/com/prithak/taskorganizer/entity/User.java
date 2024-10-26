@@ -1,26 +1,21 @@
 package com.prithak.taskorganizer.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode(callSuper = true)
-@Entity
-@Table(name = "users")
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Entity
 public class User extends BaseEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String email;
+    @Column(unique = true, nullable = false)
+    private String username;
 
     @Column(nullable = false)
     private String password;
-
-    @Column(nullable = false)
-    private String name;
 }

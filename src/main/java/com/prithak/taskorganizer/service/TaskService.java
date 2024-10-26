@@ -1,189 +1,82 @@
 package com.prithak.taskorganizer.service;
 
-import com.prithak.taskorganizer.dto.*;
-import com.prithak.taskorganizer.entity.*;
+import com.prithak.taskorganizer.entity.Comment;
+import com.prithak.taskorganizer.entity.Task;
+import com.prithak.taskorganizer.entity.TaskStatus;
+import com.prithak.taskorganizer.entity.User;
+import com.prithak.taskorganizer.repository.CommentRepository;
 import com.prithak.taskorganizer.repository.TaskRepository;
 import com.prithak.taskorganizer.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
 public class TaskService {
+
     private final TaskRepository taskRepository;
+
+    private final CommentRepository commentRepository;
+
     private final UserRepository userRepository;
 
-    @Transactional
-    public TaskResponse createTask(TaskRequest request, String creatorEmail) {
-        var creator = getUserByEmail(creatorEmail);
-        var assignee = userRepository.findById(request.getAssigneeId())
-                .orElseThrow(() -> new IllegalArgumentException("Assignee not found"));
-
-        var task = Task.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .dueDate(request.getDueDate())
-                .assignee(assignee)
-                .status(TaskStatus.OPEN)
-                .build();
-
-        return mapToTaskResponse(taskRepository.save(task));
+    public TaskService(TaskRepository taskRepository, CommentRepository commentRepository, UserRepository userRepository) {
+        this.taskRepository = taskRepository;
+        this.commentRepository = commentRepository;
+        this.userRepository = userRepository;
     }
 
-    @Transactional(readOnly = true)
-    public TaskResponse getTask(Long id, String userEmail) {
-        var task = getTaskById(id);
-        validateTaskAccess(task, userEmail);
-        return mapToTaskResponse(task);
-    }
+    public Task createTask(Task task, String assigneeUsername) {
+        Optional<User> assignee = userRepository.findByUsername(assigneeUsername);
 
-    @Transactional(readOnly = true)
-    public List<TaskResponse> getTasks(String userEmail) {
-        var user = getUserByEmail(userEmail);
-        return taskRepository.findByCreatedByOrAssignee(userEmail, user)
-                .stream()
-                .map(this::mapToTaskResponse)
-                .toList();
-    }
-
-    @Transactional
-    public TaskResponse updateTask(Long id, TaskRequest request, String userEmail) {
-        var task = getTaskById(id);
-        validateTaskAccess(task, userEmail);
-
-        var assignee = userRepository.findById(request.getAssigneeId())
-                .orElseThrow(() -> new IllegalArgumentException("Assignee not found"));
-
-        task.setTitle(request.getTitle());
-        task.setDescription(request.getDescription());
-        task.setDueDate(request.getDueDate());
-        task.setAssignee(assignee);
-
-        return mapToTaskResponse(taskRepository.save(task));
-    }
-
-    @Transactional
-    public TaskResponse transitionTaskStatus(Long id, TaskStatus status, String userEmail) {
-        var task = getTaskById(id);
-        validateTaskAccess(task, userEmail);
-        task.setStatus(status);
-        return mapToTaskResponse(taskRepository.save(task));
-    }
-
-    @Transactional
-    public TaskResponse addComment(Long id, CommentRequest request, String userEmail) {
-        var task = getTaskById(id);
-        validateTaskAccess(task, userEmail);
-
-        var comment = TaskComment.builder()
-                .task(task)
-                .content(request.getContent())
-                .build();
-
-        task.getComments().add(comment);
-        return mapToTaskResponse(taskRepository.save(task));
-    }
-
-    @Transactional
-    public TaskResponse addAttachment(Long id, MultipartFile file, String userEmail) {
-        var task = getTaskById(id);
-        validateTaskAccess(task, userEmail);
-
-        try {
-            String fileName = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            String UPLOAD_DIR = "uploads";
-            Path uploadPath = Paths.get(UPLOAD_DIR);
-            Files.createDirectories(uploadPath);
-            Files.copy(file.getInputStream(), uploadPath.resolve(fileName));
-
-            var attachment = TaskAttachment.builder()
-                    .task(task)
-                    .fileName(file.getOriginalFilename())
-                    .fileType(file.getContentType())
-                    .filePath(fileName)
-                    .build();
-
-            task.getAttachments().add(attachment);
-            return mapToTaskResponse(taskRepository.save(task));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to store file", e);
+        if (assignee.isPresent()) {
+            task.setAssignee(assignee.get());
+            task.setStatus(TaskStatus.OPEN);
+            return taskRepository.save(task);
+        } else {
+            throw new IllegalArgumentException("Assignee not found");
         }
     }
 
-    @Transactional
-    public void deleteTask(Long id, String userEmail) {
-        var task = getTaskById(id);
-        validateTaskAccess(task, userEmail);
-        taskRepository.delete(task);
+    public Optional<Task> getTaskById(Long id) {
+        return taskRepository.findById(id);
     }
 
-    private Task getTaskById(Long id) {
-        return taskRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Task not found"));
+    public List<Task> getAllTasks() {
+        return taskRepository.findAll();
     }
 
-    private User getUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    public Optional<Task> updateTask(Long id, Task taskDetails) {
+        return taskRepository.findById(id).map(task -> {
+            task.setTitle(taskDetails.getTitle());
+            task.setDescription(taskDetails.getDescription());
+            task.setDueDate(taskDetails.getDueDate());
+            task.setAssignee(taskDetails.getAssignee());
+            return taskRepository.save(task);
+        });
     }
 
-    private void validateTaskAccess(Task task, String userEmail) {
-        if (!task.getCreatedBy().equals(userEmail) && !task.getAssignee().getEmail().equals(userEmail)) {
-            throw new AccessDeniedException("You don't have access to this task");
+    public Optional<Task> transitionStatus(Long id, TaskStatus status) {
+        return taskRepository.findById(id).map(task -> {
+            task.setStatus(status);
+            return taskRepository.save(task);
+        });
+    }
+
+    public Optional<Comment> addCommentToTask(Long taskId, Comment comment) {
+        return taskRepository.findById(taskId).map(task -> {
+            comment.setTask(task);
+            return commentRepository.save(comment);
+        });
+    }
+
+    public boolean deleteTask(Long id) {
+        if (taskRepository.existsById(id)) {
+            taskRepository.deleteById(id);
+            return true;
         }
-    }
-
-    private TaskResponse mapToTaskResponse(Task task) {
-        var response = new TaskResponse();
-        response.setId(task.getId());
-        response.setTitle(task.getTitle());
-        response.setDescription(task.getDescription());
-        response.setDueDate(task.getDueDate());
-        response.setStatus(task.getStatus());
-        response.setCreatedAt(task.getCreatedAt());
-        response.setUpdatedAt(task.getUpdatedAt());
-        response.setCreatedBy(task.getCreatedBy());
-        response.setUpdatedBy(task.getUpdatedBy());
-
-        var assigneeDto = new UserDTO();
-        assigneeDto.setId(task.getAssignee().getId());
-        assigneeDto.setName(task.getAssignee().getName());
-        assigneeDto.setEmail(task.getAssignee().getEmail());
-        response.setAssignee(assigneeDto);
-
-        response.setComments(task.getComments().stream()
-                .map(comment -> {
-                    var commentDto = new CommentDTO();
-                    commentDto.setId(comment.getId());
-                    commentDto.setContent(comment.getContent());
-                    commentDto.setCreatedAt(comment.getCreatedAt());
-                    commentDto.setCreatedBy(comment.getCreatedBy());
-                    return commentDto;
-                })
-                .toList());
-
-        response.setAttachments(task.getAttachments().stream()
-                .map(attachment -> {
-                    var attachmentDto = new AttachmentDTO();
-                    attachmentDto.setId(attachment.getId());
-                    attachmentDto.setFileName(attachment.getFileName());
-                    attachmentDto.setFileType(attachment.getFileType());
-                    attachmentDto.setCreatedAt(attachment.getCreatedAt());
-                    attachmentDto.setCreatedBy(attachment.getCreatedBy());
-                    return attachmentDto;
-                })
-                .toList());
-
-        return response;
+        return false;
     }
 }

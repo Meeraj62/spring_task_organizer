@@ -13,7 +13,7 @@ public class UserInfoDetails implements UserDetails {
     private final String password;
 
     public UserInfoDetails(User user) {
-        this.username = user.getEmail();
+        this.username = user.getUsername();
         this.password = user.getPassword();
     }
 

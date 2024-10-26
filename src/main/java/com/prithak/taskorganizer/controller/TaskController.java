@@ -1,85 +1,71 @@
 package com.prithak.taskorganizer.controller;
 
-import com.prithak.taskorganizer.dto.CommentRequest;
-import com.prithak.taskorganizer.dto.TaskRequest;
-import com.prithak.taskorganizer.dto.TaskResponse;
+import com.prithak.taskorganizer.entity.Comment;
+import com.prithak.taskorganizer.entity.Task;
 import com.prithak.taskorganizer.entity.TaskStatus;
+import com.prithak.taskorganizer.entity.User;
 import com.prithak.taskorganizer.service.TaskService;
-import jakarta.validation.Valid;
-
+import com.prithak.taskorganizer.service.UserInfoDetails;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/tasks")
 public class TaskController {
-    private final TaskService taskService;
 
-    public TaskController(TaskService taskService) {
-        this.taskService = taskService;
-    }
+    @Autowired
+    private TaskService taskService;
 
     @PostMapping
-    public ResponseEntity<TaskResponse> createTask(
-            @Valid @RequestBody TaskRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(taskService.createTask(request, authentication.getName()));
+    public ResponseEntity<Task> createTask(@RequestBody Task task, @AuthenticationPrincipal UserInfoDetails user) {
+        Task savedTask = taskService.createTask(task, user.getUsername());
+        return new ResponseEntity<>(savedTask, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TaskResponse> getTask(@PathVariable Long id, Authentication authentication) {
-        return ResponseEntity.ok(taskService.getTask(id, authentication.getName()));
+    public ResponseEntity<Task> getTaskById(@PathVariable Long id) {
+        Optional<Task> task = taskService.getTaskById(id);
+        return task.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @GetMapping
-    public ResponseEntity<List<TaskResponse>> getTasks(Authentication authentication) {
-        return ResponseEntity.ok(taskService.getTasks(authentication.getName()));
+    public ResponseEntity<List<Task>> getAllTasks() {
+        List<Task> tasks = taskService.getAllTasks();
+        return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<TaskResponse> updateTask(
-            @PathVariable Long id,
-            @Valid @RequestBody TaskRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(taskService.updateTask(id, request, authentication.getName()));
+    public ResponseEntity<Task> updateTask(@PathVariable Long id, @RequestBody Task taskDetails) {
+        Optional<Task> updatedTask = taskService.updateTask(id, taskDetails);
+        return updatedTask.map(task -> new ResponseEntity<>(task, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @PutMapping("/{id}/transition")
-    public ResponseEntity<TaskResponse> transitionTaskStatus(
-            @PathVariable Long id,
-            @RequestParam TaskStatus status,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(taskService.transitionTaskStatus(id, status, authentication.getName()));
+    public ResponseEntity<Task> transitionTaskStatus(@PathVariable Long id, @RequestBody TaskStatus status) {
+        Optional<Task> updatedTask = taskService.transitionStatus(id, status);
+        return updatedTask.map(task -> new ResponseEntity<>(task, HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    @PutMapping("/{id}/comment")
-    public ResponseEntity<TaskResponse> addComment(
-            @PathVariable Long id,
-            @Valid @RequestBody CommentRequest request,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(taskService.addComment(id, request, authentication.getName()));
-    }
-
-    @PostMapping("/{id}/attachments")
-    public ResponseEntity<TaskResponse> addAttachment(
-            @PathVariable Long id,
-            @RequestParam("file") MultipartFile file,
-            Authentication authentication
-    ) {
-        return ResponseEntity.ok(taskService.addAttachment(id, file, authentication.getName()));
+    @PostMapping("/{id}/comment")
+    public ResponseEntity<Comment> addComment(@PathVariable Long id, @RequestBody Comment comment) {
+        Optional<Comment> savedComment = taskService.addCommentToTask(id, comment);
+        return savedComment.map(value -> new ResponseEntity<>(value, HttpStatus.CREATED))
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long id, Authentication authentication) {
-        taskService.deleteTask(id, authentication.getName());
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+        boolean isDeleted = taskService.deleteTask(id);
+        return isDeleted ? new ResponseEntity<>(HttpStatus.NO_CONTENT)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 }

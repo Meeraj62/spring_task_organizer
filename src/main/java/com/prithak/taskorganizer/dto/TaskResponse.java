@@ -19,7 +19,6 @@ public class TaskResponse {
     private UserDTO assignee;
     private TaskStatus status;
     private List<CommentDTO> comments;
-    private List<AttachmentDTO> attachments;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String createdBy;

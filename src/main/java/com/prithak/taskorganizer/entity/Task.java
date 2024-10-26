@@ -3,8 +3,7 @@ package com.prithak.taskorganizer.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
@@ -19,26 +18,15 @@ public class Task extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
     private String title;
-
-    @Column(columnDefinition = "TEXT")
     private String description;
-
-    @Column(nullable = false)
-    private LocalDateTime dueDate;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "assignee_id")
-    private User assignee;
+    private LocalDate dueDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private TaskStatus status;
+    private TaskStatus status = TaskStatus.OPEN;
 
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
-    private List<TaskAttachment> attachments = new ArrayList<>();
+    @ManyToOne
+    private User assignee;
 
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL)
-    private List<TaskComment> comments = new ArrayList<>();
+    private String attachments;
 }

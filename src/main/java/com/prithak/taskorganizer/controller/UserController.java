@@ -1,9 +1,9 @@
 package com.prithak.taskorganizer.controller;
 
-import com.prithak.taskorganizer.dto.AuthRequest;
 import com.prithak.taskorganizer.entity.User;
 import com.prithak.taskorganizer.security.JwtUtil;
-import com.prithak.taskorganizer.service.UserInfoService;
+import com.prithak.taskorganizer.service.UserService;
+import com.prithak.taskorganizer.dto.AuthRequest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,33 +12,34 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
-public class UserAuthController {
+public class UserController {
 
-    private final UserInfoService userInfoService;
+    private final UserService userService;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
-    public UserAuthController(UserInfoService userInfoService, AuthenticationManager authenticationManager, JwtUtil jwtUtil) {
-        this.userInfoService = userInfoService;
+    public UserController(UserService userInfoService, AuthenticationManager authenticationManager, JwtUtil jwtUtil) {
+        this.userService = userInfoService;
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody User userInfo) {
-        String message = userInfoService.addUser(userInfo);
-        return ResponseEntity.ok(message);
+    public ResponseEntity<?> registerUser(@RequestBody User user) {
+        try {
+            User savedUser = userService.saveUser(user);
+            return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Unexpected Error Occured", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody AuthRequest authRequest) {
+    public ResponseEntity<?> login(@RequestBody AuthRequest authRequest) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
