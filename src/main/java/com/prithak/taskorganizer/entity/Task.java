@@ -2,9 +2,9 @@ package com.prithak.taskorganizer.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -13,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class Task extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -7,6 +7,8 @@ import com.prithak.taskorganizer.entity.User;
 import com.prithak.taskorganizer.repository.CommentRepository;
 import com.prithak.taskorganizer.repository.TaskRepository;
 import com.prithak.taskorganizer.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +18,7 @@ import java.util.Optional;
 @Service
 public class TaskService {
 
+    private static final Logger log = LoggerFactory.getLogger(TaskService.class);
     private final TaskRepository taskRepository;
 
     private final CommentRepository commentRepository;
