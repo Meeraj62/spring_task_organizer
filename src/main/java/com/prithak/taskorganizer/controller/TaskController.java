@@ -1,76 +1,87 @@
 package com.prithak.taskorganizer.controller;
 
-import com.prithak.taskorganizer.entity.Comment;
-import com.prithak.taskorganizer.entity.Task;
+import com.prithak.taskorganizer.dto.CommentDTO;
+import com.prithak.taskorganizer.dto.TaskDTO;
 import com.prithak.taskorganizer.entity.TaskStatus;
-import com.prithak.taskorganizer.entity.User;
+import com.prithak.taskorganizer.exceptions.ResourceNotFoundException;
 import com.prithak.taskorganizer.service.TaskService;
 import com.prithak.taskorganizer.service.UserInfoDetails;
+
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/tasks")
 public class TaskController {
 
     private static final Logger log = LoggerFactory.getLogger(TaskController.class);
-    @Autowired
-    private TaskService taskService;
+
+    private final TaskService taskService;
+
+    public TaskController(TaskService taskService) {
+        this.taskService = taskService;
+    }
 
     @PostMapping
-    public ResponseEntity<?> createTask(@RequestBody Task task, @AuthenticationPrincipal UserInfoDetails user) {
-        Task savedTask = taskService.createTask(task, user.getUsername());
-        return new ResponseEntity<>(savedTask, HttpStatus.CREATED);
+    public ResponseEntity<TaskDTO> createTask(@Valid @RequestBody TaskDTO taskDTO, @AuthenticationPrincipal UserInfoDetails user) {
+        log.debug("Creating new task for user: {}", user.getUsername());
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(taskService.createTask(taskDTO, user.getUsername()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getTaskById(@PathVariable Long id) {
-        Optional<Task> task = taskService.getTaskById(id);
-        return task.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public ResponseEntity<TaskDTO> getTaskById(@PathVariable Long id) {
+        return taskService.getTaskById(id)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllTasks() {
-        List<Task> tasks = taskService.getAllTasks();
+    public ResponseEntity<List<TaskDTO>> getAllTasks() {
+        List<TaskDTO> tasks = taskService.getAllTasks();
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateTask(@PathVariable Long id, @RequestBody Task taskDetails) {
-        Optional<Task> updatedTask = taskService.updateTask(id, taskDetails);
-        return updatedTask.map(task -> new ResponseEntity<>(task, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public ResponseEntity<TaskDTO> updateTask(
+            @PathVariable Long id,
+            @Valid @RequestBody TaskDTO taskDetails) {
+        return ResponseEntity.ok(taskService.updateTask(id, taskDetails)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id)));
     }
 
     @PutMapping("/{id}/transition")
-    public ResponseEntity<?> transitionTaskStatus(@PathVariable Long id, @RequestBody TaskStatus status) {
-        log.info("Status changed to {}", status);
-        Optional<Task> updatedTask = taskService.transitionStatus(id, status);
-        return updatedTask.map(task -> new ResponseEntity<>(task, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public ResponseEntity<TaskDTO> updateTaskStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody TaskStatus status) {
+        log.info("Updating status for task id: {} to: {}", id, status);
+        return ResponseEntity.ok(taskService.transitionStatus(id, status)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id)));
     }
 
     @PostMapping("/{id}/comment")
-    public ResponseEntity<?> addComment(@PathVariable Long id, @RequestBody Comment comment) {
-        log.info("Adding comment to task {} with comment {}", id, comment.getContent());
-        Optional<Comment> savedComment = taskService.addCommentToTask(id, comment);
-        return savedComment.map(value -> new ResponseEntity<>(value, HttpStatus.CREATED))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public ResponseEntity<CommentDTO> addComment(
+            @PathVariable Long id,
+            @Valid @RequestBody CommentDTO comment,
+            @AuthenticationPrincipal UserInfoDetails user) {
+        log.debug("Adding comment to task: {}", id);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(taskService.addCommentToTask(id, comment, user.getUsername())
+                        .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteTask(@PathVariable Long id) {
-        boolean isDeleted = taskService.deleteTask(id);
-        return isDeleted ? new ResponseEntity<>(HttpStatus.NO_CONTENT)
-                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+        taskService.deleteTask(id);
+        return ResponseEntity.noContent().build();
     }
 }

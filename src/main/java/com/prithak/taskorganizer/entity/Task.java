@@ -5,6 +5,7 @@ import lombok.*;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -30,4 +31,7 @@ public class Task extends BaseEntity {
     private User assignee;
 
     private String attachments;
+
+    @OneToMany
+    private List<Comment> comments;
 }
