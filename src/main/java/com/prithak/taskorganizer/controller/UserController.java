@@ -1,5 +1,6 @@
 package com.prithak.taskorganizer.controller;
 
+import com.prithak.taskorganizer.dto.UserDTO;
 import com.prithak.taskorganizer.entity.User;
 import com.prithak.taskorganizer.security.JwtUtil;
 import com.prithak.taskorganizer.service.UserService;
@@ -32,7 +33,8 @@ public class UserController {
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
             User savedUser = userService.saveUser(user);
-            return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
+            UserDTO userDTO = toUserDTO(savedUser);
+            return new ResponseEntity<>(userDTO, HttpStatus.CREATED);
         } catch (Exception e) {
             return new ResponseEntity<>("Unexpected Error Occured", HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -56,5 +58,11 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
         }
     }
-}
 
+    private UserDTO toUserDTO(User user) {
+        UserDTO userDTO = new UserDTO();
+        userDTO.setId(user.getId());
+        userDTO.setUsername(user.getUsername());
+        return userDTO;
+    }
+}
